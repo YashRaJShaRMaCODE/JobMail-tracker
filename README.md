@@ -3,7 +3,9 @@
 ![APIs](https://img.shields.io/badge/APIs-Gmail%20%7C%20Sheets-red)
 ![Architecture](https://img.shields.io/badge/Design-Idempotent-purple)
 
-# 📧 Gmail to Google Sheets Automation  
+
+# 🚀 JobMail Tracker
+### Gmail → Google Sheets Intelligent Automation
 ### 🚀 Intelligent Job Email Tracker
 
 **Author:** Yash Raj Sharma  
