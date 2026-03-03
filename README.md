@@ -1,47 +1,87 @@
-# 📧 Gmail to Google Sheets Automation
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![OAuth](https://img.shields.io/badge/Auth-OAuth2.0-green)
+![APIs](https://img.shields.io/badge/APIs-Gmail%20%7C%20Sheets-red)
+![Architecture](https://img.shields.io/badge/Design-Idempotent-purple)
+
+# 📧 Gmail to Google Sheets Automation  
+### 🚀 Intelligent Job Email Tracker
 
 **Author:** Yash Raj Sharma  
 
+---
 
 ## 📖 Project Overview
 
-This project is a Python-based automation system that integrates the **Gmail API** and **Google Sheets API** using **OAuth 2.0 authentication**.  
-It reads real unread emails from a Gmail inbox, extracts structured information, and appends the data into a Google Sheet in an append-only and duplicate-safe manner.
+This project is a Python-based automation system that integrates the **Gmail API** and **Google Sheets API** using **OAuth 2.0 authentication**.
+
+It reads real unread emails from a Gmail inbox, intelligently filters job-related emails, extracts structured information, and appends the data into a Google Sheet in an append-only and duplicate-safe manner.
 
 The system is designed to be **idempotent**, meaning running the script multiple times will not create duplicate rows in the spreadsheet.
 
+---
 
 ## 🎯 Objective
 
 For each qualifying unread email in the Gmail inbox, the script appends a new row to Google Sheets with the following fields:
 
 | Column | Description |
-|------|-------------|
+|--------|------------|
 | From | Sender email address |
 | Subject | Email subject |
 | Date | Date & time received |
 | Content | Email body (plain text) |
 
+Only **job-related emails** are logged to maintain signal over noise.
+
+---
+
+## 🎯 Smart Job Email Filtering
+
+The system intelligently filters emails to log only job-related messages.
+
+### 🔎 Filtering Logic:
+- Keyword-based detection:
+  - interview
+  - application
+  - internship
+  - hiring
+  - offer
+  - shortlisted
+  - opportunity
+  - assessment
+- Sender-based blocking:
+  - noreply
+  - newsletters
+  - LinkedIn invites
+  - promotional mailers
+
+This transforms the system into a focused **Job Opportunity Tracker** instead of a generic email logger.
+
+---
 
 ## 🏗️ High-Level Architecture
 
+```
 Gmail Inbox
-|
-| (Gmail API + OAuth 2.0)
-v
+    │
+    │ (Gmail API + OAuth 2.0)
+    ▼
 Python Automation Script
-|
-|-- Email parsing
-|-- Duplicate detection (state.json)
-|
-v
+    ├── Email Parsing
+    ├── Smart Filtering
+    ├── Duplicate Detection (state.json)
+    ├── Mark as Read
+    ▼
 Google Sheets
+```
+
+---
 
 ## 🛠️ Tech Stack
 
 - **Language:** Python 3  
 - **APIs:** Gmail API, Google Sheets API  
-- **Authentication:** OAuth 2.0 (Installed App)  
+- **Authentication:** OAuth 2.0 (Installed App Flow)  
 - **Libraries:**
   - google-api-python-client
   - google-auth
@@ -50,175 +90,219 @@ Google Sheets
   - beautifulsoup4
   - python-dateutil
 
+---
+
 ## 📂 Project Structure
+
+```
 gmail-to-sheets/
 ├── src/
-│ ├── gmail_service.py
-│ ├── sheets_service.py
-│ ├── email_parser.py
-│ ├── state_manager.py
-│ └── main.py
+│   ├── gmail_service.py
+│   ├── sheets_service.py
+│   ├── email_parser.py
+│   ├── state_manager.py
+│   └── main.py
 │
 ├── credentials/
-│ └── credentials.json (NOT committed)
+│   └── credentials.json (NOT committed)
 │
 ├── proof/
-│ ├── inbox.png
-│ ├── sheet.png
-│ └── oauth.png
+│   ├── inbox.png
+│   ├── sheet.png
+│   └── oauth.png
 │
 ├── config.py
 ├── requirements.txt
 ├── .gitignore
 └── README.md
+```
+
+---
 
 ## ⚙️ Setup Instructions
 
 ### 1️⃣ Clone the Repository
+
 ```bash
 git clone <YOUR_REPOSITORY_LINK>
 cd gmail-to-sheets
+```
 
-2️⃣ Install Dependencies
+### 2️⃣ Install Dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-3️⃣ Google Cloud Configuration
+### 3️⃣ Google Cloud Configuration
 
-Create a Google Cloud project
+1. Create a Google Cloud Project  
+2. Enable:
+   - Gmail API  
+   - Google Sheets API  
+3. Configure OAuth Consent Screen (External)  
+4. Add your Gmail address as a test user  
+5. Create OAuth Client (Desktop App)  
+6. Download `credentials.json`  
 
-Enable Gmail API and Google Sheets API
+Place it inside:
 
-Configure OAuth Consent Screen (External)
-
-Add your Gmail address as a test user
-
-Create OAuth Client (Desktop App)
-
-Download credentials.json and place it inside:
-
+```
 credentials/credentials.json
+```
 
-4️⃣ Configure Google Sheet
+---
 
-Edit config.py:
+### 4️⃣ Configure Google Sheet
 
+Edit `config.py`:
+
+```python
 SPREADSHEET_ID = "YOUR_GOOGLE_SHEET_ID"
 SHEET_NAME = "Sheet1"
+```
 
-5️⃣ Run the Script
+---
+
+### 5️⃣ Run the Script
+
+```bash
 python src/main.py
+```
 
-🔐 OAuth Flow Explanation
+---
+
+## 🔐 OAuth Flow Explanation
 
 The project uses the OAuth 2.0 Installed App flow.
 
-On the first run:
+### On First Run:
+- Browser window opens
+- User grants Gmail & Sheets permissions
+- `token.json` is created locally
 
-A browser window opens
+### On Subsequent Runs:
+- Stored token is reused
+- Access tokens refresh automatically
 
-The user grants Gmail and Sheets permissions
+This ensures secure authentication without storing user passwords.
 
-A token.json file is created locally
+---
 
-On subsequent runs:
+## 🧠 Duplicate Prevention Logic
 
-The stored token is reused and refreshed automatically
+Each Gmail email has a unique **Message ID**.
 
-This approach ensures secure authentication without storing user credentials.
+The system maintains a local JSON file (`state.json`) containing processed IDs.
 
-🧠 Duplicate Prevention Logic
+### Execution Flow:
 
-Each Gmail email has a unique Message ID.
-The script maintains a list of processed Message IDs to prevent duplicate entries.
-
-How it works:
-
-Fetch unread emails
-
-Check Message ID against stored state
-
-If already processed → skip
-
-Else → process and store Message ID
+1. Fetch unread emails
+2. Check Message ID in state
+3. If already processed → skip
+4. Else → process and append
+5. Store Message ID
 
 This guarantees append-only, duplicate-free execution.
 
-💾 State Persistence Method
+---
 
-Processed email IDs are stored in a local JSON file:
+## 💾 State Persistence Method
 
+Processed email IDs are stored locally:
+
+```json
 {
   "processed_ids": [
     "message_id_1",
     "message_id_2"
   ]
 }
+```
 
-Why this approach?
+### Why This Approach?
 
-Lightweight and fast
+- Lightweight
+- Fast
+- No external database required
+- Survives script re-runs
+- Simple and reliable for automation tasks
 
-No external database required
+---
 
-Survives script re-runs
+## 🛡️ Reliability Guarantees
 
-Simple and reliable for automation use-cases
+- Idempotent execution (safe re-runs)
+- Append-only Google Sheets writes
+- Message ID-based duplicate detection
+- Automatic token refresh handling
+- Email marked as read after processing
+- Smart filtering reduces noise
 
-🚧 Challenges Faced & Solutions
-Issue: OAuth Insufficient Scope Errors
+---
 
-Encountered 403 Insufficient Authentication Scopes
+## 🚧 Challenges Faced & Solutions
 
-Occurred due to reusing tokens created with limited permissions
+### Issue: OAuth Insufficient Scope Errors
 
-Solution:
+Encountered:
+```
+403 Insufficient Authentication Scopes
+```
 
-Unified Gmail and Sheets scopes
+**Cause:** Reusing tokens created with limited permissions.
 
-Deleted existing token.json to force re-authentication
+**Solution:**
+- Unified Gmail and Sheets scopes
+- Deleted existing `token.json`
+- Forced re-authentication
 
-⚠️ Limitations
+---
 
-Email attachments are not processed
+## ⚠️ Limitations
 
-Only unread Inbox emails are handled
+- Email attachments are not processed
+- Only unread Inbox emails are handled
+- Local state file not suitable for distributed systems
+- Very large inboxes may require pagination handling
 
-Local state file is not suitable for distributed systems
+---
 
-Very large inboxes may require pagination enhancements
+## 🔄 Future Enhancements
 
-📸 Proof of Execution
+- Filter emails from last 24 hours
+- Categorize into multiple Sheet tabs (Interviews, Offers, Applications)
+- Add structured logging
+- Add pagination for large inboxes
+- Replace JSON state with SQLite
+- Dockerize and deploy to Cloud Run
 
-Screenshots demonstrating successful execution are included in the /proof folder:
+---
 
-Gmail inbox with unread emails
+## 🔐 Security Notice
 
-Google Sheet populated with rows
+This project requires Google OAuth credentials.
 
-OAuth consent screen
+For security reasons:
+- `credentials.json`
+- `token.json`
+- `state.json`
 
-🎥 Demo Video: (Add link here)
+are not included in this repository.
 
-🔄 Post-Submission Modification Readiness
+To run locally, you must create your own Google Cloud OAuth credentials.
 
-The modular design allows quick changes such as:
+---
 
-Filtering emails from the last 24 hours
-
-Adding new columns (e.g., labels)
-
-Excluding automated emails (no-reply)
-
-✅ Conclusion
+## ✅ Conclusion
 
 This project demonstrates:
 
-Secure OAuth-based API integration
+- Secure OAuth-based API integration
+- Modular Python architecture
+- Idempotent system design
+- Smart filtering logic
+- Reliable duplicate prevention
+- Real-world Gmail → Sheets automation pipeline
 
-Clean and modular Python design
-
-Reliable duplicate prevention
-
-Production-style automation logic
-
-Real-world Gmail to Sheets data pipeline
+It simulates a production-style backend automation workflow suitable for CRM ingestion, job tracking systems, and workflow integrations.

@@ -1,5 +1,13 @@
+# OAuth / Secrets
 credentials/credentials.json
 token.json
 state.json
+
+# Python
 __pycache__/
-.env
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+
