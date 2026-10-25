@@ -7,7 +7,7 @@ from gmail_service import get_gmail_service, get_unread_messages
 from email_parser import parse_email
 from sheets_service import get_sheets_service, append_row
 from state_manager import load_state, save_state, is_processed, mark_processed
-from config import SPREADSHEET_ID, SHEET_NAME
+from config import SPREADSHEET_ID, SHEET_NAME, STORE_EMAIL_BODY
 from logger import logger
 
 
@@ -63,6 +63,10 @@ def is_blocked_sender(sender):
 
 
 def main():
+    if not SPREADSHEET_ID:
+        logger.error("Set SPREADSHEET_ID before running the tracker.")
+        return
+
     try:
         gmail_service = get_gmail_service()
         sheets_service = get_sheets_service()
@@ -108,7 +112,7 @@ def main():
             email_data['from'],
             email_data['subject'],
             email_data['date'],
-            email_data['content']
+            email_data['content'][:1000] if STORE_EMAIL_BODY else "",
         ]
 
         append_row(

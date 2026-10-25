@@ -31,7 +31,7 @@ For each qualifying unread email in the Gmail inbox, the script appends a new ro
 | From | Sender email address |
 | Subject | Email subject |
 | Date | Date & time received |
-| Content | Email body (plain text) |
+| Content | Empty by default; up to 1,000 characters only when `STORE_EMAIL_BODY=true` |
 
 Only **job-related emails** are logged to maintain signal over noise.
 
@@ -157,12 +157,9 @@ credentials/credentials.json
 
 ### 4️⃣ Configure Google Sheet
 
-Edit `config.py`:
+Copy `.env.example` to `.env`, then set the spreadsheet ID and sheet name. Email bodies are not copied to Sheets by default; set `STORE_EMAIL_BODY=true` only if you want that sensitive data stored there.
 
-```python
-SPREADSHEET_ID = "YOUR_GOOGLE_SHEET_ID"
-SHEET_NAME = "Sheet1"
-```
+The app uses `gmail.modify` because it marks processed messages as read. Review the OAuth consent screen and revoke the token when you no longer use the app.
 
 ---
 
