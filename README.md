@@ -32,6 +32,7 @@ For each qualifying unread email in the Gmail inbox, the script appends a new ro
 | Subject | Email subject |
 | Date | Date & time received |
 | Content | Empty by default; up to 1,000 characters only when `STORE_EMAIL_BODY=true` |
+| Gmail message ID | Internal duplicate-recovery key (column E) |
 
 Only **job-related emails** are logged to maintain signal over noise.
 
@@ -190,19 +191,18 @@ This ensures secure authentication without storing user passwords.
 
 ## 🧠 Duplicate Prevention Logic
 
-Each Gmail email has a unique **Message ID**.
-
-The system maintains a local JSON file (`state.json`) containing processed IDs.
+Each Gmail email has a unique **Message ID**. The tracker stores that ID in column E of the Google Sheet and in a local JSON checkpoint. Column E is used to recover safely if a Sheets write succeeds but the API response or process is interrupted before the local checkpoint is updated.
 
 ### Execution Flow:
 
 1. Fetch unread emails
-2. Check Message ID in state
-3. If already processed → skip
-4. Else → process and append
-5. Store Message ID
+2. Skip IDs already in the local checkpoint
+3. Save a pending checkpoint before writing a job email
+4. Append the row and Message ID to columns A–E
+5. Save the completed checkpoint, then mark the email read
+6. On restart, check column E to recover an interrupted write without appending it twice
 
-This guarantees append-only, duplicate-free execution.
+The local state uses sets for constant-time ID checks and is saved by atomic file replacement. Existing state files with a `processed_ids` list are migrated automatically. Add `Gmail message ID` as the header in E1 if the sheet already has a header row.
 
 ---
 
@@ -231,9 +231,11 @@ Processed email IDs are stored locally:
 
 ## 🛡️ Reliability Guarantees
 
-- Idempotent execution (safe re-runs)
+- Duplicate recovery across interrupted Sheets writes
 - Append-only Google Sheets writes
 - Message ID-based duplicate detection
+- Atomic local checkpoint updates
+- Invalid checkpoints fail closed with a repair hint instead of silently resetting duplicate history
 - Automatic token refresh handling
 - Email marked as read after processing
 - Smart filtering reduces noise
@@ -298,6 +300,10 @@ To run locally, you must create your own Google Cloud OAuth credentials.
 This project demonstrates:
 
 - Secure OAuth-based API integration
+
+## 🧪 Offline tests
+
+Run `python -m unittest discover -s src -p 'test_*.py' -v`. These tests use mocked Gmail and Sheets services and do not access a real account.
 - Modular Python architecture
 - Idempotent system design
 - Smart filtering logic

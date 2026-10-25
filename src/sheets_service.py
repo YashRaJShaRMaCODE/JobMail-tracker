@@ -1,9 +1,4 @@
 import os
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-
 SCOPES = [
     'https://www.googleapis.com/auth/gmail.modify',
     'https://www.googleapis.com/auth/spreadsheets'
@@ -11,6 +6,11 @@ SCOPES = [
 
 
 def get_sheets_service():
+    from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    from googleapiclient.discovery import build
+
     creds = None
 
     if os.path.exists('token.json'):
@@ -34,8 +34,20 @@ def get_sheets_service():
 def append_row(service, spreadsheet_id, sheet_name, row):
     service.spreadsheets().values().append(
         spreadsheetId=spreadsheet_id,
-        range=f"{sheet_name}!A:D",
+        range=f"{_quote_sheet_name(sheet_name)}!A:E",
         valueInputOption="RAW",
         insertDataOption="INSERT_ROWS",
         body={"values": [row]}
     ).execute()
+
+
+def get_logged_message_ids(service, spreadsheet_id, sheet_name):
+    result = service.spreadsheets().values().get(
+        spreadsheetId=spreadsheet_id,
+        range=f"{_quote_sheet_name(sheet_name)}!E:E",
+    ).execute()
+    return {row[0] for row in result.get("values", []) if row and row[0]}
+
+
+def _quote_sheet_name(sheet_name):
+    return "'" + sheet_name.replace("'", "''") + "'"

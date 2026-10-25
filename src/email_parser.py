@@ -11,7 +11,7 @@ def _get_header(headers, name):
 
 
 def _decode_body(data):
-    decoded_bytes = base64.urlsafe_b64decode(data)
+    decoded_bytes = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
     return decoded_bytes.decode("utf-8", errors="ignore")
 
 
@@ -19,12 +19,21 @@ def _extract_body(payload):
     """
     Recursively extract email body
     """
-    if 'parts' in payload:
-        for part in payload['parts']:
-            if part['mimeType'] == 'text/plain':
-                return _decode_body(part['body']['data'])
-            elif part['mimeType'] == 'text/html':
-                html = _decode_body(part['body']['data'])
+    if not isinstance(payload, dict):
+        return ""
+
+    parts = payload.get('parts')
+    if isinstance(parts, list):
+        for part in parts:
+            if not isinstance(part, dict) or part.get('filename'):
+                continue
+            mime_type = part.get('mimeType')
+            body = part.get('body') or {}
+            data = body.get('data') if isinstance(body, dict) else None
+            if mime_type == 'text/plain' and data:
+                return _decode_body(data)
+            elif mime_type == 'text/html' and data:
+                html = _decode_body(data)
                 soup = BeautifulSoup(html, 'html.parser')
                 return soup.get_text()
             else:
@@ -32,8 +41,10 @@ def _extract_body(payload):
                 if result:
                     return result
     else:
-        if payload['body'].get('data'):
-            return _decode_body(payload['body']['data'])
+        body = payload.get('body') or {}
+        data = body.get('data') if isinstance(body, dict) else None
+        if data:
+            return _decode_body(data)
 
     return ""
 

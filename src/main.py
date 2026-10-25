@@ -5,8 +5,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from gmail_service import get_gmail_service, get_unread_messages
 from email_parser import parse_email
-from sheets_service import get_sheets_service, append_row
-from state_manager import load_state, save_state, is_processed, mark_processed
+from sheets_service import get_sheets_service, append_row, get_logged_message_ids
+from state_manager import (
+    load_state, save_state, is_processed, mark_processed,
+    mark_pending, clear_pending,
+)
 from config import SPREADSHEET_ID, SHEET_NAME, STORE_EMAIL_BODY
 from logger import logger
 
@@ -62,6 +65,55 @@ def is_blocked_sender(sender):
     return any(word in sender for word in blocked_keywords)
 
 
+def process_messages(gmail_service, sheets_service, messages, state, spreadsheet_id, sheet_name, store_email_body=False):
+    message_ids = []
+    seen_ids = set()
+    for message in messages:
+        message_id = message["id"]
+        if message_id not in seen_ids:
+            message_ids.append(message_id)
+            seen_ids.add(message_id)
+
+    pending_ids = state["pending_ids"]
+    if pending_ids:
+        logged_ids = get_logged_message_ids(sheets_service, spreadsheet_id, sheet_name)
+        for message_id in pending_ids & logged_ids:
+            mark_processed(state, message_id)
+            clear_pending(state, message_id)
+        if pending_ids:
+            message_ids.extend(sorted(pending_ids - seen_ids))
+        save_state(state)
+
+    for msg_id in message_ids:
+        if is_processed(state, msg_id):
+            mark_email_as_read(gmail_service, msg_id)
+            continue
+
+        email_data = parse_email(gmail_service, msg_id)
+        if is_blocked_sender(email_data["from"]) or not is_job_related(email_data):
+            mark_email_as_read(gmail_service, msg_id)
+            mark_processed(state, msg_id)
+            save_state(state)
+            continue
+
+        if msg_id not in state["pending_ids"]:
+            mark_pending(state, msg_id)
+            save_state(state)
+
+        append_row(sheets_service, spreadsheet_id, sheet_name, [
+            email_data["from"],
+            email_data["subject"],
+            email_data["date"],
+            email_data["content"][:1000] if store_email_body else "",
+            msg_id,
+        ])
+        mark_processed(state, msg_id)
+        clear_pending(state, msg_id)
+        save_state(state)
+        logger.info("Logged a job email")
+        mark_email_as_read(gmail_service, msg_id)
+
+
 def main():
     if not SPREADSHEET_ID:
         logger.error("Set SPREADSHEET_ID before running the tracker.")
@@ -77,57 +129,16 @@ def main():
         )
         return
 
-    state = load_state()
-
     messages = get_unread_messages(gmail_service, max_results=10)
-
-    if not messages:
+    state = load_state()
+    if not messages and not state["pending_ids"]:
         logger.info("No new unread emails found.")
         return
 
-    for msg in messages:
-        msg_id = msg['id']
-
-        if is_processed(state, msg_id):
-            continue
-
-        email_data = parse_email(gmail_service, msg_id)
-
-        # 🔎 Filter blocked senders
-        if is_blocked_sender(email_data["from"]):
-            logger.info(f"⛔ Skipping newsletter/spam from: {email_data['from']}")
-            mark_email_as_read(gmail_service, msg_id)
-            mark_processed(state, msg_id)
-            continue
-
-        # 🔎 Filter non-job emails
-        if not is_job_related(email_data):
-            logger.info(f"🚫 Skipping non-job email: {email_data['subject']}")
-            mark_email_as_read(gmail_service, msg_id)
-            mark_processed(state, msg_id)
-            continue
-
-        # ✅ Append only job-related emails
-        row = [
-            email_data['from'],
-            email_data['subject'],
-            email_data['date'],
-            email_data['content'][:1000] if STORE_EMAIL_BODY else "",
-        ]
-
-        append_row(
-            sheets_service,
-            SPREADSHEET_ID,
-            SHEET_NAME,
-            row
-        )
-
-        logger.info(f"✅ Logged job email: {email_data['subject']}")
-
-        mark_email_as_read(gmail_service, msg_id)
-        mark_processed(state, msg_id)
-
-    save_state(state)
+    process_messages(
+        gmail_service, sheets_service, messages, state,
+        SPREADSHEET_ID, SHEET_NAME, STORE_EMAIL_BODY,
+    )
     logger.info("🎉 Processing completed successfully.")
 
 
