@@ -1,3 +1,4 @@
+import argparse
 import sys
 import os
 
@@ -65,6 +66,28 @@ def is_blocked_sender(sender):
     return any(word in sender for word in blocked_keywords)
 
 
+def preview_messages(gmail_service, messages, state):
+    seen_ids = set()
+    matched = filtered = already_processed = pending = 0
+    for message in messages:
+        message_id = message.get("id")
+        if not message_id or message_id in seen_ids:
+            continue
+        seen_ids.add(message_id)
+        if is_processed(state, message_id):
+            already_processed += 1
+            continue
+        if message_id in state["pending_ids"]:
+            pending += 1
+            continue
+        email_data = parse_email(gmail_service, message_id)
+        if is_blocked_sender(email_data["from"]) or not is_job_related(email_data):
+            filtered += 1
+        else:
+            matched += 1
+    return matched, filtered, already_processed, pending
+
+
 def process_messages(gmail_service, sheets_service, messages, state, spreadsheet_id, sheet_name, store_email_body=False):
     message_ids = []
     seen_ids = set()
@@ -114,14 +137,14 @@ def process_messages(gmail_service, sheets_service, messages, state, spreadsheet
         mark_email_as_read(gmail_service, msg_id)
 
 
-def main():
-    if not SPREADSHEET_ID:
+def main(dry_run=False):
+    if not dry_run and not SPREADSHEET_ID:
         logger.error("Set SPREADSHEET_ID before running the tracker.")
         return
 
     try:
-        gmail_service = get_gmail_service()
-        sheets_service = get_sheets_service()
+        gmail_service = get_gmail_service(read_only=dry_run)
+        sheets_service = None if dry_run else get_sheets_service()
     except FileNotFoundError:
         logger.error(
             "credentials/credentials.json not found. "
@@ -135,6 +158,14 @@ def main():
         logger.info("No new unread emails found.")
         return
 
+    if dry_run:
+        matched, filtered, processed, pending = preview_messages(gmail_service, messages, state)
+        logger.info(
+            "Dry run: %d job-related, %d filtered, %d already logged, and %d pending reconciliation items left untouched. No Sheets rows or Gmail labels were changed.",
+            matched, filtered, processed, pending,
+        )
+        return
+
     process_messages(
         gmail_service, sheets_service, messages, state,
         SPREADSHEET_ID, SHEET_NAME, STORE_EMAIL_BODY,
@@ -143,4 +174,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Track job-related Gmail messages in Google Sheets.")
+    parser.add_argument("--dry-run", action="store_true", help="Preview unread email matches without changing Gmail or Sheets.")
+    main(dry_run=parser.parse_args().dry_run)

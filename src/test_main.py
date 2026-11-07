@@ -1,10 +1,35 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from main import process_messages
+from main import preview_messages, process_messages
 
 
 class MessageProcessingTests(unittest.TestCase):
+    def test_preview_counts_without_mutating_gmail_sheets_or_checkpoint(self):
+        state = {
+            "processed_ids": {"logged"},
+            "pending_ids": {"pending"},
+        }
+        emails = {
+            "job": {"from": "recruiter@example.com", "subject": "Interview invite", "content": "Let's talk"},
+            "promo": {"from": "noreply@example.com", "subject": "Application tips", "content": "A newsletter"},
+        }
+        gmail = Mock()
+        messages = [{"id": key} for key in ("job", "promo", "logged", "pending", "job")]
+
+        with patch("main.parse_email", side_effect=lambda _, message_id: emails[message_id]) as parse, \
+             patch("main.append_row") as append, \
+             patch("main.mark_email_as_read") as mark_read, \
+             patch("main.save_state") as save:
+            result = preview_messages(gmail, messages, state)
+
+        self.assertEqual(result, (1, 1, 1, 1))
+        self.assertEqual(parse.call_count, 2)
+        append.assert_not_called()
+        mark_read.assert_not_called()
+        save.assert_not_called()
+        self.assertEqual(state, {"processed_ids": {"logged"}, "pending_ids": {"pending"}})
+
     def test_successful_append_persists_id_before_marking_read(self):
         gmail = Mock()
         state = {"processed_ids": set(), "pending_ids": set()}

@@ -2,6 +2,7 @@
 .env
 credentials/credentials.json
 token.json
+token-readonly.json
 data/state.json
 
 # Python

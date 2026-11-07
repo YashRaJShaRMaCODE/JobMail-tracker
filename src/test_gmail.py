@@ -1,6 +1,6 @@
 import unittest
 
-from gmail_service import SCOPES
+from gmail_service import GMAIL_READONLY_SCOPE, READ_ONLY_SCOPES, SCOPES
 
 
 class GmailScopeTests(unittest.TestCase):
@@ -9,6 +9,9 @@ class GmailScopeTests(unittest.TestCase):
             "https://www.googleapis.com/auth/gmail.modify",
             "https://www.googleapis.com/auth/spreadsheets",
         ])
+
+    def test_preview_requests_read_only_gmail_scope(self):
+        self.assertEqual(READ_ONLY_SCOPES, [GMAIL_READONLY_SCOPE])
 
 
 if __name__ == "__main__":

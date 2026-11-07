@@ -160,15 +160,18 @@ credentials/credentials.json
 
 Copy `.env.example` to `.env`, then set the spreadsheet ID and sheet name. Email bodies are not copied to Sheets by default; set `STORE_EMAIL_BODY=true` only if you want that sensitive data stored there.
 
-The app uses `gmail.modify` because it marks processed messages as read. Review the OAuth consent screen and revoke the token when you no longer use the app.
+The normal run uses `gmail.modify` because it marks processed messages as read. `--dry-run` uses the narrower `gmail.readonly` scope and never writes Sheets rows or changes Gmail labels. Review the OAuth consent screen and revoke the token when you no longer use the app.
 
 ---
 
 ### 5️⃣ Run the Script
 
 ```bash
+python src/main.py --dry-run
 python src/main.py
 ```
+
+Use the preview first to see match counts before enabling spreadsheet writes and marking processed email as read.
 
 ---
 
@@ -178,8 +181,8 @@ The project uses the OAuth 2.0 Installed App flow.
 
 ### On First Run:
 - Browser window opens
-- User grants Gmail & Sheets permissions
-- `token.json` is created locally
+- Preview grants Gmail read-only access and creates `token-readonly.json` locally
+- Normal run grants Gmail and Sheets access and creates `token.json` locally
 
 ### On Subsequent Runs:
 - Stored token is reused
