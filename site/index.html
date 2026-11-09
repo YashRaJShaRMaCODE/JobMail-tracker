@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f5ee">
+  <meta name="description" content="JobMail turns job-related email into a reviewable Google Sheets log. Preview matches first, with OAuth running locally on your computer.">
+  <link rel="canonical" href="https://yashrajsharmacode.github.io/JobMail-tracker/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="site.css">
+  <title>JobMail — Make room for the reply</title>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="masthead">
+    <a class="brand" href="#top" aria-label="JobMail home"><span class="brand-mark" aria-hidden="true">J<span>↗</span></span><span>JOBMAIL<span class="brand-sub">INBOX TO OPPORTUNITY</span></span></a>
+    <nav aria-label="Main navigation"><a href="#how">How it works</a><a href="#privacy">Privacy</a><a class="nav-cta" href="https://github.com/YashRaJShaRMaCODE/JobMail-tracker">View on GitHub <span aria-hidden="true">↗</span></a></nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> A small tool for the job hunt</p>
+        <h1 id="hero-title">Make room<br>for <em>the reply.</em></h1>
+        <p class="hero-lede">JobMail finds the application, interview and offer emails hiding in your inbox, then keeps a tidy record in your own Google Sheet.</p>
+        <div class="hero-actions"><a class="button button-dark" href="https://github.com/YashRaJShaRMaCODE/JobMail-tracker#run-the-script">Get the project <span aria-hidden="true">↗</span></a><a class="text-link" href="#how">See the 30-second tour <span aria-hidden="true">↓</span></a></div>
+        <div class="hero-note"><span class="note-icon" aria-hidden="true">⌂</span><span><strong>Runs on your computer.</strong><br>Preview first. Your OAuth files stay local.</span></div>
+      </div>
+
+      <div class="signal-panel" aria-label="Illustration of a synthetic inbox being sorted into a spreadsheet">
+        <div class="panel-top"><span>INBOX / SAMPLE ONLY</span><span class="panel-date">MON · 09:41</span></div>
+        <div class="inbox-list" id="sample-inbox">
+          <article class="mail-row" data-kind="match"><span class="mail-icon mail-blue" aria-hidden="true">↗</span><div><strong>Interview invitation</strong><span>Northstar Studio · Product intern</span></div><span class="mail-state">MATCH</span></article>
+          <article class="mail-row" data-kind="noise"><span class="mail-icon mail-lilac" aria-hidden="true">✳</span><div><strong>Weekly product digest</strong><span>Product Notes · Monday edition</span></div><span class="mail-state state-muted">SKIP</span></article>
+          <article class="mail-row" data-kind="match"><span class="mail-icon mail-yellow" aria-hidden="true">✓</span><div><strong>Application received</strong><span>Juniper Labs · Frontend role</span></div><span class="mail-state">MATCH</span></article>
+        </div>
+        <div class="flow-line" aria-hidden="true"><span></span><b>2 signals</b><span></span></div>
+        <div class="sheet-preview"><div class="sheet-icon" aria-hidden="true">▤</div><div class="sheet-copy"><strong>Your job log</strong><span>2 rows ready to review</span></div><div class="sheet-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <p class="panel-caption">Names and messages above are invented examples.</p>
+        <span class="panel-stamp" aria-hidden="true">LOCAL<br>FIRST</span>
+      </div>
+      <div class="hero-index" aria-hidden="true">01 — LESS INBOX, MORE MOMENTUM</div>
+    </section>
+
+    <section class="proof-strip" aria-label="Product principles"><p><span>01</span> Preview before write</p><p><span>02</span> Duplicate-safe logging</p><p><span>03</span> No email body by default</p><p><span>04</span> Your sheet, your record</p></section>
+
+    <section class="tour section-wrap" id="how" aria-labelledby="tour-title">
+      <div class="section-heading"><p class="eyebrow">A calmer workflow</p><h2 id="tour-title">From inbox pile<br>to <em>clear next step.</em></h2></div>
+      <div class="tour-body"><p>Run a read-only preview to see what would count as a job email. When the matches look right, run the full flow to log them in Sheets and mark processed messages as read.</p><a class="text-link" href="https://github.com/YashRaJShaRMaCODE/JobMail-tracker#readme">Read setup notes <span aria-hidden="true">↗</span></a></div>
+      <div class="steps" aria-label="JobMail workflow">
+        <article class="step"><span class="step-num">01</span><div class="step-symbol symbol-inbox" aria-hidden="true"><i></i><i></i><i></i></div><h3>Scan</h3><p>Check up to ten unread messages using your local OAuth session.</p></article>
+        <article class="step"><span class="step-num">02</span><div class="step-symbol symbol-filter" aria-hidden="true"><i></i><i></i><i></i></div><h3>Sort</h3><p>Keep job signals. Leave newsletters and unrelated mail behind.</p></article>
+        <article class="step"><span class="step-num">03</span><div class="step-symbol symbol-sheet" aria-hidden="true"><i></i><i></i><i></i><i></i></div><h3>Log</h3><p>Append only unseen message IDs to your chosen spreadsheet.</p></article>
+      </div>
+    </section>
+
+    <section class="demo-band" aria-labelledby="demo-title">
+      <div><p class="eyebrow">Try the sample sorter</p><h2 id="demo-title">A quick read<br>on the signal.</h2><p class="demo-copy">These fictional messages stay on this page. Choose a view to see how the inbox gets sorted.</p></div>
+      <div class="demo-box"><div class="demo-controls" role="group" aria-label="Filter sample messages"><button type="button" data-filter="all" aria-pressed="true">All <span>3</span></button><button type="button" data-filter="match" aria-pressed="false">Job signal <span>2</span></button><button type="button" data-filter="noise" aria-pressed="false">Filtered out <span>1</span></button></div><p class="demo-status" id="demo-status" aria-live="polite">Showing all 3 synthetic messages.</p><div class="demo-result"><span class="result-dot" aria-hidden="true"></span><p><strong>Preview is read-only.</strong><br>No Gmail or Sheets connection is used by this page.</p><span class="result-count" id="result-count">03</span></div></div>
+    </section>
+
+    <section class="privacy section-wrap" id="privacy" aria-labelledby="privacy-title">
+      <div class="privacy-head"><p class="eyebrow">No black box</p><h2 id="privacy-title">Your email stays<br><em>your business.</em></h2><p>JobMail is a command-line project. This site is a static introduction; it never connects to Gmail, Google Sheets, or your computer.</p></div>
+      <div class="privacy-list">
+        <article><span>01</span><div><h3>OAuth happens locally</h3><p>Google consent and token files are handled on your machine. Never upload them to this site or GitHub.</p></div></article>
+        <article><span>02</span><div><h3>Preview before changes</h3><p><code>--dry-run</code> uses Gmail read-only access. It does not write Sheets rows or change labels.</p></div></article>
+        <article><span>03</span><div><h3>Body text stays off</h3><p>Email content is omitted from the Sheet by default. Enable body storage only if you deliberately choose to.</p></div></article>
+        <article><span>04</span><div><h3>Full run has side effects</h3><p>The normal run needs Gmail modify access, writes to your Sheet, and marks processed messages as read.</p></div></article>
+      </div>
+    </section>
+
+    <section class="closing"><p class="eyebrow">A little more signal</p><h2>Get back to<br><em>the good part.</em></h2><a class="button button-light" href="https://github.com/YashRaJShaRMaCODE/JobMail-tracker">Explore JobMail on GitHub <span aria-hidden="true">↗</span></a></section>
+  </main>
+
+  <footer><a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">J<span>↗</span></span><span>JOBMAIL<span class="brand-sub">INBOX TO OPPORTUNITY</span></span></a><p>A local automation project by Yash Raj Sharma</p><a class="footer-link" href="https://github.com/YashRaJShaRMaCODE/JobMail-tracker">Source and setup <span aria-hidden="true">↗</span></a><span class="copyright">© <span id="year">2026</span> · SAMPLE DATA ONLY</span></footer>
+  <script src="app.js" defer></script>
+</body>
+</html>

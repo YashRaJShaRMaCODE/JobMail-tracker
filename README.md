@@ -1,20 +1,16 @@
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![OAuth](https://img.shields.io/badge/Auth-OAuth2.0-green)
-![APIs](https://img.shields.io/badge/APIs-Gmail%20%7C%20Sheets-red)
-![Architecture](https://img.shields.io/badge/Design-Idempotent-purple)
+# JobMail
 
+**A local-first Gmail → Google Sheets tracker for job-related email.**
 
-# 🚀 JobMail Tracker
-### Gmail → Google Sheets Intelligent Automation
-### 🚀 Intelligent Job Email Tracker
-
-**Author:** Yash Raj Sharma  
+[Open the product site](https://yashrajsharmacode.github.io/JobMail-tracker/) · [Run the script](#run-the-script) · [Review privacy and OAuth](#oauth-flow-explanation)
 
 ---
 
-## 📖 Project Overview
+## Project overview
 
-This project is a Python-based automation system that integrates the **Gmail API** and **Google Sheets API** using **OAuth 2.0 authentication**.
+JobMail is a Python automation tool that connects to the **Gmail API** and **Google Sheets API** through **OAuth 2.0**. It runs on your computer; the companion product site is static and uses fictional sample messages only.
+
+The [JobMail product site](https://yashrajsharmacode.github.io/JobMail-tracker/) is a static overview. It does not connect to Gmail or Sheets and contains no real email data.
 
 It reads real unread emails from a Gmail inbox, intelligently filters job-related emails, extracts structured information, and appends the data into a Google Sheet in an append-only and duplicate-safe manner.
 
@@ -165,6 +161,8 @@ The normal run uses `gmail.modify` because it marks processed messages as read. 
 ---
 
 ### 5️⃣ Run the Script
+
+<a id="run-the-script"></a>
 
 ```bash
 python src/main.py --dry-run

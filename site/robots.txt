@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://yashrajsharmacode.github.io/JobMail-tracker/sitemap.xml
