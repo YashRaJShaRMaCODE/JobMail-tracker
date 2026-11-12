@@ -1,5 +1,8 @@
 import unittest
+import csv
+import tempfile
 from argparse import ArgumentTypeError
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from main import parse_batch_size, preview_messages, process_messages, main
@@ -56,6 +59,42 @@ class MessageProcessingTests(unittest.TestCase):
         mark_read.assert_not_called()
         save.assert_not_called()
         self.assertEqual(state, {"processed_ids": {"logged"}, "pending_ids": {"pending"}})
+
+    def test_dry_run_csv_exports_only_matches_and_keeps_body_blank_by_default(self):
+        state = {"processed_ids": set(), "pending_ids": set()}
+        emails = {
+            "job": {"from": "recruiter@example.com", "subject": "=Interview invite", "date": "2026-01-15", "content": "Private body"},
+            "noise": {"from": "noreply@example.com", "subject": "Application tips", "date": "2026-01-15", "content": "Newsletter"},
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "preview.csv"
+            with patch("main.parse_email", side_effect=lambda _, message_id: emails[message_id]), \
+                 patch("main.STORE_EMAIL_BODY", False):
+                result = preview_messages(Mock(), [{"id": "job"}, {"id": "noise"}], state, path)
+
+            with path.open(newline="", encoding="utf-8") as file:
+                rows = list(csv.reader(file))
+
+        self.assertEqual(result, (1, 1, 0, 0))
+        self.assertEqual(rows[0], ["From", "Subject", "Date", "Content", "Gmail message ID"])
+        self.assertEqual(rows[1], ["recruiter@example.com", "'=Interview invite", "2026-01-15", "", "job"])
+
+    def test_csv_export_requires_dry_run_before_authentication(self):
+        with patch("main.get_gmail_service") as get_service, patch("main.logger.error"):
+            main(export_csv="preview.csv")
+        get_service.assert_not_called()
+
+    def test_empty_dry_run_still_creates_csv_header(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "preview.csv"
+            with patch("main.get_gmail_service", return_value=Mock()), \
+                 patch("main.get_unread_messages", return_value=[]), \
+                 patch("main.load_state", return_value={"processed_ids": set(), "pending_ids": set()}), \
+                 patch("main.logger.info"):
+                main(dry_run=True, export_csv=path)
+            with path.open(newline="", encoding="utf-8") as file:
+                rows = list(csv.reader(file))
+        self.assertEqual(rows, [["From", "Subject", "Date", "Content", "Gmail message ID"]])
 
     def test_successful_append_persists_id_before_marking_read(self):
         gmail = Mock()

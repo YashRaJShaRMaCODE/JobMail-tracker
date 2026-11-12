@@ -1,4 +1,5 @@
 import argparse
+import csv
 import sys
 import os
 
@@ -76,25 +77,37 @@ def is_blocked_sender(sender):
     return any(word in sender for word in blocked_keywords)
 
 
-def preview_messages(gmail_service, messages, state):
+def preview_messages(gmail_service, messages, state, export_path=None):
     seen_ids = set()
     matched = filtered = already_processed = pending = 0
-    for message in messages:
-        message_id = message.get("id")
-        if not message_id or message_id in seen_ids:
-            continue
-        seen_ids.add(message_id)
-        if is_processed(state, message_id):
-            already_processed += 1
-            continue
-        if message_id in state["pending_ids"]:
-            pending += 1
-            continue
-        email_data = parse_email(gmail_service, message_id)
-        if is_blocked_sender(email_data["from"]) or not is_job_related(email_data):
-            filtered += 1
-        else:
+    output = open(export_path, "w", newline="", encoding="utf-8") if export_path else None
+    try:
+        writer = csv.writer(output) if output else None
+        if writer:
+            writer.writerow(["From", "Subject", "Date", "Content", "Gmail message ID"])
+        for message in messages:
+            message_id = message.get("id")
+            if not message_id or message_id in seen_ids:
+                continue
+            seen_ids.add(message_id)
+            if is_processed(state, message_id):
+                already_processed += 1
+                continue
+            if message_id in state["pending_ids"]:
+                pending += 1
+                continue
+            email_data = parse_email(gmail_service, message_id)
+            if is_blocked_sender(email_data["from"]) or not is_job_related(email_data):
+                filtered += 1
+                continue
             matched += 1
+            if writer:
+                values = [email_data["from"], email_data["subject"], email_data["date"],
+                          email_data["content"][:1000] if STORE_EMAIL_BODY else "", message_id]
+                writer.writerow([f"'{value}" if str(value).startswith(("=", "+", "-", "@", "\t", "\r")) else value for value in values])
+    finally:
+        if output:
+            output.close()
     return matched, filtered, already_processed, pending
 
 
@@ -147,9 +160,12 @@ def process_messages(gmail_service, sheets_service, messages, state, spreadsheet
         mark_email_as_read(gmail_service, msg_id)
 
 
-def main(dry_run=False, max_results=10):
+def main(dry_run=False, max_results=10, export_csv=None):
     if type(max_results) is not int or not 1 <= max_results <= MAX_UNREAD_MESSAGES:
         logger.error("Message limit must be between 1 and %d.", MAX_UNREAD_MESSAGES)
+        return
+    if export_csv and not dry_run:
+        logger.error("--export-csv requires --dry-run; no Gmail or Sheets changes were made.")
         return
 
     if not dry_run and not SPREADSHEET_ID:
@@ -168,15 +184,20 @@ def main(dry_run=False, max_results=10):
 
     messages = get_unread_messages(gmail_service, max_results=max_results)
     state = load_state()
-    if not messages and not state["pending_ids"]:
+    if not messages and not state["pending_ids"] and not (dry_run and export_csv):
         logger.info("No new unread emails found.")
         return
 
     if dry_run:
-        matched, filtered, processed, pending = preview_messages(gmail_service, messages, state)
+        try:
+            matched, filtered, processed, pending = preview_messages(gmail_service, messages, state, export_csv)
+        except OSError as exc:
+            logger.error("Could not write CSV export: %s", exc)
+            return
         logger.info(
-            "Dry run: %d job-related, %d filtered, %d already logged, and %d pending reconciliation items left untouched. No Sheets rows or Gmail labels were changed.",
+            "Dry run: %d job-related, %d filtered, %d already logged, and %d pending reconciliation items left untouched%s. No Sheets rows or Gmail labels were changed.",
             matched, filtered, processed, pending,
+            f"; matched rows exported to {export_csv}" if export_csv else "",
         )
         return
 
@@ -190,6 +211,7 @@ def main(dry_run=False, max_results=10):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Track job-related Gmail messages in Google Sheets.")
     parser.add_argument("--dry-run", action="store_true", help="Preview unread email matches without changing Gmail or Sheets.")
+    parser.add_argument("--export-csv", metavar="PATH", help="Save matched dry-run rows to a local CSV file (requires --dry-run).")
     parser.add_argument(
         "--limit",
         type=parse_batch_size,
@@ -198,4 +220,4 @@ if __name__ == "__main__":
         help=f"Max unread Inbox messages to scan this run (1-{MAX_UNREAD_MESSAGES}; default: 10).",
     )
     arguments = parser.parse_args()
-    main(dry_run=arguments.dry_run, max_results=arguments.limit)
+    main(dry_run=arguments.dry_run, max_results=arguments.limit, export_csv=arguments.export_csv)
