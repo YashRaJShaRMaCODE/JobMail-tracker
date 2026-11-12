@@ -12,6 +12,7 @@ class SiteParser(HTMLParser):
         self.ids = set()
         self.fragments = []
         self.assets = []
+        self.controlled_ids = []
         self.has_main = False
         self.has_title = False
 
@@ -19,6 +20,8 @@ class SiteParser(HTMLParser):
         attrs = dict(attrs)
         if attrs.get("id"):
             self.ids.add(attrs["id"])
+        if attrs.get("aria-controls"):
+            self.controlled_ids.extend(attrs["aria-controls"].split())
         if tag == "main":
             self.has_main = True
         if tag == "title":
@@ -36,6 +39,8 @@ def main():
     parser.feed((ROOT / "index.html").read_text(encoding="utf-8"))
     assert parser.has_main and parser.has_title, "index needs a title and main landmark"
     assert all(fragment in parser.ids for fragment in parser.fragments), "broken in-page link"
+    assert all(controlled_id in parser.ids for controlled_id in parser.controlled_ids), "broken aria-controls reference"
+    assert {"sample-rows-toggle", "sample-rows"} <= parser.ids, "sample sheet preview control is missing"
     assert all((ROOT / asset).is_file() for asset in parser.assets), "missing local asset"
     assert not any(asset.startswith(("http://", "https://")) for asset in parser.assets), "remote runtime asset"
     ElementTree.parse(ROOT / "sitemap.xml")

@@ -10,7 +10,7 @@
 
 JobMail is a Python automation tool that connects to the **Gmail API** and **Google Sheets API** through **OAuth 2.0**. It runs on your computer; the companion product site is static and uses fictional sample messages only.
 
-The [JobMail product site](https://yashrajsharmacode.github.io/JobMail-tracker/) is a static overview. It does not connect to Gmail or Sheets and contains no real email data.
+The [JobMail product site](https://yashrajsharmacode.github.io/JobMail-tracker/) is a static overview. Its sample sorter can reveal fictional spreadsheet rows so you can review the output shape; it does not connect to Gmail or Sheets and contains no real email data.
 
 It reads real unread emails from a Gmail inbox, intelligently filters job-related emails, extracts structured information, and appends the data into a Google Sheet in an append-only and duplicate-safe manner.
 
