@@ -4,7 +4,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from gmail_service import get_gmail_service, get_unread_messages
+from gmail_service import MAX_UNREAD_MESSAGES, get_gmail_service, get_unread_messages
 from email_parser import parse_email
 from sheets_service import get_sheets_service, append_row, get_logged_message_ids
 from state_manager import (
@@ -13,6 +13,16 @@ from state_manager import (
 )
 from config import SPREADSHEET_ID, SHEET_NAME, STORE_EMAIL_BODY
 from logger import logger
+
+
+def parse_batch_size(value):
+    try:
+        size = int(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("limit must be a whole number") from exc
+    if not 1 <= size <= MAX_UNREAD_MESSAGES:
+        raise argparse.ArgumentTypeError(f"limit must be between 1 and {MAX_UNREAD_MESSAGES}")
+    return size
 
 
 # ✅ Mark email as read
@@ -137,7 +147,11 @@ def process_messages(gmail_service, sheets_service, messages, state, spreadsheet
         mark_email_as_read(gmail_service, msg_id)
 
 
-def main(dry_run=False):
+def main(dry_run=False, max_results=10):
+    if type(max_results) is not int or not 1 <= max_results <= MAX_UNREAD_MESSAGES:
+        logger.error("Message limit must be between 1 and %d.", MAX_UNREAD_MESSAGES)
+        return
+
     if not dry_run and not SPREADSHEET_ID:
         logger.error("Set SPREADSHEET_ID before running the tracker.")
         return
@@ -152,7 +166,7 @@ def main(dry_run=False):
         )
         return
 
-    messages = get_unread_messages(gmail_service, max_results=10)
+    messages = get_unread_messages(gmail_service, max_results=max_results)
     state = load_state()
     if not messages and not state["pending_ids"]:
         logger.info("No new unread emails found.")
@@ -176,4 +190,12 @@ def main(dry_run=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Track job-related Gmail messages in Google Sheets.")
     parser.add_argument("--dry-run", action="store_true", help="Preview unread email matches without changing Gmail or Sheets.")
-    main(dry_run=parser.parse_args().dry_run)
+    parser.add_argument(
+        "--limit",
+        type=parse_batch_size,
+        default=10,
+        metavar="N",
+        help=f"Max unread Inbox messages to scan this run (1-{MAX_UNREAD_MESSAGES}; default: 10).",
+    )
+    arguments = parser.parse_args()
+    main(dry_run=arguments.dry_run, max_results=arguments.limit)

@@ -169,6 +169,8 @@ python src/main.py --dry-run
 python src/main.py
 ```
 
+Both commands scan up to 10 unread Inbox messages by default. Pass `--limit N` to choose a per-run batch from 1 to 500, for example `python src/main.py --dry-run --limit 100`. A larger limit processes more messages in one run; the normal run still uses `gmail.modify` and can mark processed messages as read.
+
 Use the preview first to see match counts before enabling spreadsheet writes and marking processed email as read.
 
 ---

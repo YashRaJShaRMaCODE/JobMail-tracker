@@ -1,10 +1,37 @@
 import unittest
+from argparse import ArgumentTypeError
 from unittest.mock import Mock, patch
 
-from main import preview_messages, process_messages
+from main import parse_batch_size, preview_messages, process_messages, main
+from gmail_service import MAX_UNREAD_MESSAGES, get_unread_messages
 
 
 class MessageProcessingTests(unittest.TestCase):
+    def test_batch_size_parser_enforces_gmail_request_bounds(self):
+        self.assertEqual(parse_batch_size("1"), 1)
+        self.assertEqual(parse_batch_size(str(MAX_UNREAD_MESSAGES)), MAX_UNREAD_MESSAGES)
+        for value in ("0", str(MAX_UNREAD_MESSAGES + 1), "many"):
+            with self.subTest(value=value), self.assertRaises(ArgumentTypeError):
+                parse_batch_size(value)
+
+    def test_unread_query_rejects_out_of_range_limits_before_api_call(self):
+        service = Mock()
+        for value in (0, MAX_UNREAD_MESSAGES + 1, True):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                get_unread_messages(service, max_results=value)
+        service.users.assert_not_called()
+
+    def test_dry_run_passes_an_explicit_limit_to_gmail_read_only_query(self):
+        gmail = Mock()
+        with patch("main.get_gmail_service", return_value=gmail) as get_service, \
+             patch("main.get_unread_messages", return_value=[]) as get_messages, \
+             patch("main.load_state", return_value={"processed_ids": set(), "pending_ids": set()}), \
+             patch("main.logger.info"):
+            main(dry_run=True, max_results=42)
+
+        get_service.assert_called_once_with(read_only=True)
+        get_messages.assert_called_once_with(gmail, max_results=42)
+
     def test_preview_counts_without_mutating_gmail_sheets_or_checkpoint(self):
         state = {
             "processed_ids": {"logged"},

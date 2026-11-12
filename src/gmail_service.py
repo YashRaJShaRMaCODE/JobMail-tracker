@@ -5,6 +5,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets'
 ]
 READ_ONLY_SCOPES = [GMAIL_READONLY_SCOPE]
+MAX_UNREAD_MESSAGES = 500
 
 
 def get_gmail_service(read_only=False):
@@ -37,8 +38,11 @@ def get_gmail_service(read_only=False):
 
 def get_unread_messages(service, max_results=10):
     """
-    Fetch unread emails from Inbox
+    Fetch unread emails from Inbox. Gmail allows at most 500 results per request.
     """
+    if type(max_results) is not int or not 1 <= max_results <= MAX_UNREAD_MESSAGES:
+        raise ValueError(f"max_results must be between 1 and {MAX_UNREAD_MESSAGES}")
+
     results = service.users().messages().list(
         userId='me',
         labelIds=['INBOX', 'UNREAD'],
