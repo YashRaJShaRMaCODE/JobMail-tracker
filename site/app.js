@@ -4,6 +4,8 @@ const status = document.querySelector("#demo-status");
 const count = document.querySelector("#result-count");
 const sampleRowsToggle = document.querySelector("#sample-rows-toggle");
 const sampleRows = document.querySelector("#sample-rows");
+const sampleCopy = document.querySelector("#sample-copy");
+const sampleCopyStatus = document.querySelector("#sample-copy-status");
 
 for (const control of controls) {
   control.addEventListener("click", () => {
@@ -31,4 +33,16 @@ sampleRowsToggle.addEventListener("click", () => {
   status.textContent = open
     ? "Sample sheet preview hidden."
     : "Showing two fictional job rows; message bodies are not stored by default.";
+});
+
+sampleCopy.addEventListener("click", async () => {
+  const rows = [...sampleRows.querySelectorAll("tr")].map((row) =>
+    [...row.cells].map((cell) => cell.textContent.trim().replace(/\s+/g, " ")).join("\t"),
+  );
+  try {
+    await navigator.clipboard.writeText(rows.join("\n"));
+    sampleCopyStatus.textContent = "Two fictional rows copied for your spreadsheet.";
+  } catch {
+    sampleCopyStatus.textContent = "Copy is unavailable here. Select the sample cells to copy them manually.";
+  }
 });
