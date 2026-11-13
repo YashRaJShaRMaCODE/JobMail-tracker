@@ -29,7 +29,7 @@ class EmailParserTests(unittest.TestCase):
         service.users.return_value.messages.return_value.get.return_value.execute.return_value = {
             "payload": {
                 "headers": [
-                    {"name": "From", "value": "recruiter@example.com"},
+                    {"name": "From", "value": "Recruiter Team <recruiter@example.com>"},
                     {"name": "Subject", "value": "Interview invite"},
                     {"name": "Date", "value": "Thu, 15 Jan 2026 10:00:00 +0000"},
                 ],

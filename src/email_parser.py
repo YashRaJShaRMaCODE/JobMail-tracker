@@ -1,6 +1,6 @@
 import base64
 from bs4 import BeautifulSoup
-from email.utils import parsedate_to_datetime
+from email.utils import parseaddr, parsedate_to_datetime
 
 
 def _get_header(headers, name):
@@ -61,7 +61,8 @@ def parse_email(service, message_id):
 
     headers = msg['payload']['headers']
 
-    sender = _get_header(headers, 'From')
+    sender_header = _get_header(headers, 'From')
+    sender = parseaddr(sender_header)[1] or sender_header
     subject = _get_header(headers, 'Subject')
     date_raw = _get_header(headers, 'Date')
 

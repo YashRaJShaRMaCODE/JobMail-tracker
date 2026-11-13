@@ -5,7 +5,7 @@ from argparse import ArgumentTypeError
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from main import parse_batch_size, preview_messages, process_messages, main
+from main import is_job_related, parse_batch_size, parse_since_date, preview_messages, process_messages, main
 from gmail_service import MAX_UNREAD_MESSAGES, get_unread_messages
 
 
@@ -16,6 +16,26 @@ class MessageProcessingTests(unittest.TestCase):
         for value in ("0", str(MAX_UNREAD_MESSAGES + 1), "many"):
             with self.subTest(value=value), self.assertRaises(ArgumentTypeError):
                 parse_batch_size(value)
+
+    def test_since_date_parser_requires_iso_date(self):
+        self.assertEqual(parse_since_date("2026-11-01"), "2026-11-01")
+        with self.assertRaises(ArgumentTypeError):
+            parse_since_date("11/01/2026")
+
+    def test_custom_job_keywords_extend_default_matching(self):
+        email = {"subject": "Research fellowship", "content": "The lab is welcoming candidates."}
+        self.assertFalse(is_job_related(email))
+        self.assertFalse(is_job_related(email, [""]))
+        self.assertTrue(is_job_related(email, ["fellowship"]))
+
+    def test_status_reads_checkpoint_without_gmail_authentication(self):
+        state = {"processed_ids": {"one", "two"}, "pending_ids": {"three"}}
+        with patch("main.load_state", return_value=state), \
+             patch("main.logger.info") as log, \
+             patch("main.get_gmail_service") as get_service:
+            main(status=True)
+        log.assert_called_once_with("Local checkpoint: %d processed, %d pending reconciliation items.", 2, 1)
+        get_service.assert_not_called()
 
     def test_unread_query_rejects_out_of_range_limits_before_api_call(self):
         service = Mock()
@@ -43,9 +63,10 @@ class MessageProcessingTests(unittest.TestCase):
         emails = {
             "job": {"from": "recruiter@example.com", "subject": "Interview invite", "content": "Let's talk"},
             "promo": {"from": "noreply@example.com", "subject": "Application tips", "content": "A newsletter"},
+            "other": {"from": "person@example.com", "subject": "Welcome", "content": "Your account is ready"},
         }
         gmail = Mock()
-        messages = [{"id": key} for key in ("job", "promo", "logged", "pending", "job")]
+        messages = [{"id": key} for key in ("job", "promo", "other", "logged", "pending", "job")]
 
         with patch("main.parse_email", side_effect=lambda _, message_id: emails[message_id]) as parse, \
              patch("main.append_row") as append, \
@@ -53,8 +74,8 @@ class MessageProcessingTests(unittest.TestCase):
              patch("main.save_state") as save:
             result = preview_messages(gmail, messages, state)
 
-        self.assertEqual(result, (1, 1, 1, 1))
-        self.assertEqual(parse.call_count, 2)
+        self.assertEqual(result, (1, 2, 1, 1, 1, 1))
+        self.assertEqual(parse.call_count, 3)
         append.assert_not_called()
         mark_read.assert_not_called()
         save.assert_not_called()
@@ -75,7 +96,7 @@ class MessageProcessingTests(unittest.TestCase):
             with path.open(newline="", encoding="utf-8") as file:
                 rows = list(csv.reader(file))
 
-        self.assertEqual(result, (1, 1, 0, 0))
+        self.assertEqual(result, (1, 1, 0, 0, 1, 0))
         self.assertEqual(rows[0], ["From", "Subject", "Date", "Content", "Gmail message ID"])
         self.assertEqual(rows[1], ["recruiter@example.com", "'=Interview invite", "2026-01-15", "", "job"])
 
@@ -116,6 +137,26 @@ class MessageProcessingTests(unittest.TestCase):
         self.assertEqual(events, ["save", "append", "save", "read"])
         self.assertIn("message-1", state["processed_ids"])
         self.assertNotIn("message-1", state["pending_ids"])
+
+    def test_keep_unread_logs_and_checkpoints_without_changing_gmail_labels(self):
+        state = {"processed_ids": set(), "pending_ids": set()}
+        email = {
+            "from": "recruiter@example.com",
+            "subject": "Interview invite",
+            "date": "2026-01-15 10:00:00",
+            "content": "Details",
+        }
+        with patch("main.parse_email", return_value=email), \
+             patch("main.append_row") as append, \
+             patch("main.mark_email_as_read") as mark_read, \
+             patch("main.save_state"):
+            process_messages(
+                Mock(), Mock(), [{"id": "message-1"}], state,
+                "sheet", "Sheet1", keep_unread=True,
+            )
+        append.assert_called_once()
+        mark_read.assert_not_called()
+        self.assertIn("message-1", state["processed_ids"])
 
     def test_recovers_a_sheet_write_that_succeeded_before_crash(self):
         state = {"processed_ids": set(), "pending_ids": {"message-1"}}

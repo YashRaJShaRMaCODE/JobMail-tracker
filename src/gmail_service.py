@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly'
 SCOPES = [
@@ -36,17 +37,26 @@ def get_gmail_service(read_only=False):
     service = build('gmail', 'v1', credentials=creds)
     return service
 
-def get_unread_messages(service, max_results=10):
+def get_unread_messages(service, max_results=10, since=None):
     """
     Fetch unread emails from Inbox. Gmail allows at most 500 results per request.
     """
     if type(max_results) is not int or not 1 <= max_results <= MAX_UNREAD_MESSAGES:
         raise ValueError(f"max_results must be between 1 and {MAX_UNREAD_MESSAGES}")
 
+    query = {}
+    if since is not None:
+        try:
+            parsed_date = datetime.strptime(since, "%Y-%m-%d")
+        except (TypeError, ValueError) as exc:
+            raise ValueError("since must use YYYY-MM-DD format") from exc
+        query["q"] = f"after:{parsed_date:%Y/%m/%d}"
+
     results = service.users().messages().list(
         userId='me',
         labelIds=['INBOX', 'UNREAD'],
-        maxResults=max_results
+        maxResults=max_results,
+        **query,
     ).execute()
 
     messages = results.get('messages', [])
